@@ -8,7 +8,7 @@ module "oauth_poc_sg" {
   name                = "hsm-controller-sg"
   vpc_id              = "vpc-0e45330661ead195a"
   ingress_cidr_blocks = concat(module.ledger_ips.trusted_locations, module.ledger_ips.infra_vpn,["212.106.106.198/32"])
-  ingress_rules       = ["ssh-tcp","http-8080-tcp","https-443"]
+  ingress_rules       = ["ssh-tcp","http-8080-tcp","https-443-tcp"]
   egress_cidr_blocks  = ["0.0.0.0/0"]
   egress_rules        = ["all-all"]
 }
