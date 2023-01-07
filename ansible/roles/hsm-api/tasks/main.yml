@@ -1,0 +1,47 @@
+---
+# tasks file for hsm-api
+- name: Create artifact directory
+  file:
+    path: "{{ playbook_dir }}/artifacts/hsm-api/{{ API_VERSION }}"
+    state: directory
+  delegate_to: localhost
+
+- name: Check if binary already exist
+  stat:
+    path: "{{ playbook_dir }}/artifacts/hsm-api/{{ API_VERSION }}/hsm-api"
+  delegate_to: localhost
+  register: st
+
+- name: Get hsm-api release
+  shell: |
+    gh release download {{ API_VERSION }} -D {{ playbook_dir }}/artifacts/hsm-api/{{ API_VERSION }} -p hsm-api -R anguyen-ledger/hsm-api
+  delegate_to: localhost
+  become: false
+  when: not st.stat.exists
+
+- name: Deploy binary 
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/artifacts/hsm-api/{{ API_VERSION }}/hsm-api" 
+    dest: /usr/bin/hsm-api
+    owner: root
+    group: root
+    mode: '0655'
+  become: true
+
+- name: Create systemd service
+  ansible.builtin.template:
+    src: etc/systemd/system/hsm-api.service.j2
+    dest: /etc/systemd/system/hsm-api.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  register: service
+
+- name: Enable hsm-api service 
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: hsm-api
+    enabled: yes
+  when: service.changed

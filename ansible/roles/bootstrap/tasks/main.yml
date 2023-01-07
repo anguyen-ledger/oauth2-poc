@@ -1,0 +1,111 @@
+---
+# tasks file for bootstrap
+- name: Update apt sources
+  ansible.builtin.template:
+    src: etc/apt/sources.list.j2
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install nginx 
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Install requirements
+  ansible.builtin.apt:
+    name: pip
+    state: present
+    update_cache: true
+
+- name: Install passlib
+  ansible.builtin.pip:
+    name: passlib
+
+- name: Remove default site 
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Create private key (RSA, 4096 bits)
+  community.crypto.openssl_privatekey:
+    path: "{{ nginx_key_path }}"
+
+- name: Create certificate signing request (CSR) for self-signed certificate
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ nginx_key_path }}"
+    common_name: "{{ nginx_domain }}"
+    organization_name: "HSM POC"
+  register: csr
+
+- name: Create self-signed certificate from CSR
+  community.crypto.x509_certificate:
+    path: "{{ nginx_cert_path }}"
+    csr_content: "{{ csr.csr }}"
+    privatekey_path: "{{ nginx_key_path }}"
+    provider: selfsigned
+
+    #- name: Create user basic auth credentials
+    #  community.general.htpasswd:
+    #    path: /etc/nginx/passwdfile
+    #    name: test
+    #    password: 'test'
+    #    owner: root
+    #    group: www-data
+    #    mode: 0640
+
+- name: Update nginx vhost
+  ansible.builtin.template:
+    src: etc/nginx/sites-enabled/vhost.j2
+    dest: /etc/nginx/sites-enabled/vhost
+    owner: root
+    group: root
+    mode: '0644'
+  register: nginx_conf
+
+- name: Make sure nginx is started 
+  ansible.builtin.systemd:
+    state: restarted
+    name: nginx
+  when: nginx_conf.changed
+
+- name: Ensure group "restricted-users" exists
+  ansible.builtin.group:
+    name: restricted-users
+    state: present
+
+- name: Restrict users to port forward
+  ansible.builtin.template:
+    src: etc/ssh/sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: '0644'
+  register: sshd_conf
+
+- name: Add a restricted user
+  ansible.builtin.user:
+    name: test
+    shell: /bin/false
+    groups: restricted-users
+    append: yes
+    
+- name: Set authorized key for test user
+  authorized_key:
+    user: test
+    state: present
+    key: "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBHULhRozldbyeHk8kmmymqi4UvZvWJ0DSPdoXcRju0IC3ScJzIYA/AY8BB7H4uVr2Uez/BzkdAUjzFh63WTVb0g= <ssh://anguyen@LPPS0094|nist256p1>"
+
+- name: Restart SSH
+  ansible.builtin.systemd:
+    state: restarted
+    name: ssh
+
+- name: Configure static hosts for POC 
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^{{ item.ip }}'
+    line: "{{ item.ip }} {{ item.name }}"
+  with_items: "{{ hosts_override }}"

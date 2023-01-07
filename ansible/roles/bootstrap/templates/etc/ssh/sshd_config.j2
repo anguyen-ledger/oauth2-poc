@@ -1,0 +1,23 @@
+Include /etc/ssh/sshd_config.d/*.conf
+
+AllowUsers {{ (["ubuntu"] + ssh_allowed_users) | join(' ') }}
+
+AuthenticationMethods publickey
+PubkeyAuthentication yes
+PermitRootLogin no
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem       sftp    /usr/lib/openssh/sftp-server
+
+Match Group restricted-users
+   AllowTcpForwarding yes
+   X11Forwarding no
+   PermitTunnel no
+   GatewayPorts no
+   PermitOpen 127.0.0.1:443
+   AllowAgentForwarding no
+   ForceCommand echo 'This account can only be used to forward traffic to reverse proxy on 443'

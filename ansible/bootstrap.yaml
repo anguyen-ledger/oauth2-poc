@@ -1,0 +1,14 @@
+---
+- gather_facts: true 
+  become: true
+  hosts: all
+
+  roles:
+    - name: bootstrap 
+      tags: 
+        - never
+        - bootstrap
+    - name: hsm-api
+      tags:
+        - never
+        - api
