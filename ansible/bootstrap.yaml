@@ -8,7 +8,7 @@
       tags: 
         - never
         - bootstrap
-    - name: hsm-api
+    - name: simple-api
       tags:
         - never
         - api

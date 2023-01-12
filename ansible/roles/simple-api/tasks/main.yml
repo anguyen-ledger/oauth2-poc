@@ -1,0 +1,28 @@
+---
+# tasks file for hsm-api
+- name: Deploy binary 
+  ansible.builtin.copy:
+    src: simple-api 
+    dest: /usr/bin/simple-api
+    owner: root
+    group: root
+    mode: '0655'
+  become: true
+
+- name: Create systemd service
+  ansible.builtin.template:
+    src: etc/systemd/system/simple-api.service.j2
+    dest: /etc/systemd/system/simple-api.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  register: service
+
+- name: Enable simple-api service 
+  ansible.builtin.systemd:
+    state: restarted
+    daemon_reload: yes
+    name: simple-api
+    enabled: yes
+  when: service.changed

@@ -8,21 +8,15 @@
     group: root
     mode: '0644'
 
-- name: Install nginx 
+- name: Install packages
   ansible.builtin.apt:
-    name: nginx
+    name: "{{ item }}"
     state: present
     update_cache: true
-
-- name: Install requirements
-  ansible.builtin.apt:
-    name: pip
-    state: present
-    update_cache: true
-
-- name: Install passlib
-  ansible.builtin.pip:
-    name: passlib
+  with_items:
+    - nginx
+    - postgresql-client-common
+    - postgresql-client
 
 - name: Remove default site 
   ansible.builtin.file:
@@ -37,8 +31,16 @@
   community.crypto.openssl_csr_pipe:
     privatekey_path: "{{ nginx_key_path }}"
     common_name: "{{ nginx_domain }}"
-    organization_name: "HSM POC"
+    #subject_alt_name: ["DNS:oauth-{{ nginx_domain }},DNS:keycloak-{{ nginx_domain }}"]
+    subject_alt_name: ["DNS:oauth-{{ nginx_domain }}","DNS:keycloak-{{ nginx_domain }}"]
+    organization_name: "OAUTH POC"
   register: csr
+
+- debug:
+    msg: "{{ csr.subjectAltName }}"
+
+- debug:
+    msg: "{{ csr.csr }}"
 
 - name: Create self-signed certificate from CSR
   community.crypto.x509_certificate:
@@ -70,38 +72,6 @@
     state: restarted
     name: nginx
   when: nginx_conf.changed
-
-- name: Ensure group "restricted-users" exists
-  ansible.builtin.group:
-    name: restricted-users
-    state: present
-
-- name: Restrict users to port forward
-  ansible.builtin.template:
-    src: etc/ssh/sshd_config.j2
-    dest: /etc/ssh/sshd_config
-    owner: root
-    group: root
-    mode: '0644'
-  register: sshd_conf
-
-- name: Add a restricted user
-  ansible.builtin.user:
-    name: test
-    shell: /bin/false
-    groups: restricted-users
-    append: yes
-    
-- name: Set authorized key for test user
-  authorized_key:
-    user: test
-    state: present
-    key: "ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBHULhRozldbyeHk8kmmymqi4UvZvWJ0DSPdoXcRju0IC3ScJzIYA/AY8BB7H4uVr2Uez/BzkdAUjzFh63WTVb0g= <ssh://anguyen@LPPS0094|nist256p1>"
-
-- name: Restart SSH
-  ansible.builtin.systemd:
-    state: restarted
-    name: ssh
 
 - name: Configure static hosts for POC 
   ansible.builtin.lineinfile:

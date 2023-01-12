@@ -1,6 +1,6 @@
 ---
 # defaults file for bootstrap
-nginx_domain: controller.localdomain.com
+nginx_domain: rp.localdomain.com
 nginx_cert_path: /etc/ssl/certs/certificate.pem
 nginx_key_path: /etc/ssl/private/certificate.key
 nginx_root: /var/www/html/
