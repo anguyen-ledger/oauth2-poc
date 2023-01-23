@@ -18,24 +18,6 @@ bootstrap:
 	@echo "\n"
 	cd ansible; ansible-playbook -i inventory/hosts bootstrap.yaml
 
-set-tunnel-443:
-	@echo Open tunnel with the controller on port $(LOCAL_PORT) to reach Nginx on HTTPS
-	@echo This tunnel used a retricted user "test" 
-	@echo "\n"
-	ssh -N -L $(LOCAL_PORT):127.0.0.1:443 test@`cat ansible/inventory/hosts | grep -v "all" | cut -d " " -f1 `
-
-set-tunnel-80:
-	@echo Open tunnel with the controller on port $(LOCAL_PORT) to reach Nginx on HTTP
-	@echo This tunnel used a retricted user "test" 
-	@echo This should not work as we only allow HTTPS to be forwarded 
-	@echo PermitOpen 127.0.0.1:443 
-	@echo "\n"
-	ssh -N -L $(LOCAL_PORT):127.0.0.1:80 test@`cat ansible/inventory/hosts | grep -v "all" | cut -d " " -f1 `
-
-check-ssh-restricted:
-	@echo Check that ssh shell is not allowed from restricted user
-	ssh test@`cat ansible/inventory/hosts | grep -v "all" | cut -d " " -f1 `
-	
 ssh:
 	@echo Connecting to remote host with as sudo user
 	ssh ubuntu@`cat ansible/inventory/hosts | grep -v "all" | cut -d " " -f1 `
@@ -44,10 +26,38 @@ nginx-logs:
 	@echo Displaying nginx logs
 	ssh ubuntu@`cat ansible/inventory/hosts | grep -v "all" | cut -d " " -f1 ` tail -f /var/log/nginx/access.log
 
-api-status:
-	@echo Performning /status on $(HSM_TARGET)
-	curl -s -u test -k https://localhost:$(LOCAL_PORT)/$(HSM_TARGET)/status | jq '.output' -r
+keycloak-get-token:
+	@echo Get access token:
+	@echo 
+	@curl -s -k \
+          -d "client_id=admin-cli" \
+          -d "username=admin" \
+          -d "password=admin" \
+          -d "grant_type=password" \
+          "https://keycloak-rp.localdomain.com/realms/master/protocol/openid-connect/token" | jq '.access_token' -r | tee /tmp/token
 
-api-reset:
-	@echo Performing /reset on $(HSM_TARGET)
-	curl -s -u test -k -XPUT https://localhost:$(LOCAL_PORT)/$(HSM_TARGET)/reset | jq '.output' -r
+keycloak-create-realm: keycloak-get-token
+	@echo Create new POC realm
+	@echo
+	@curl -s -k -XPOST \
+          -H "Authorization: Bearer `cat /tmp/token`" \
+          -H "Content-Type: application/json" \
+          -d "@keycloak-poc-realm.json" \
+	  https://keycloak-rp.localdomain.com/admin/realms
+
+keycloak-create-client: keycloak-get-token
+	@echo Create new POC realm
+	@echo
+	@curl -s -k -XPOST \
+          -H "Authorization: Bearer `cat /tmp/token`" \
+          -H "Content-Type: application/json" \
+          -d "@keycloak-client.json" \
+	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients
+
+keycloak-get-client-secret: keycloak-get-token
+	@echo GET client secret
+	@echo
+	@curl -s -k -XGET \
+          -H "Authorization: Bearer `cat /tmp/token`" \
+          -H "Content-Type: application/json" \
+	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients/POC/client-secret

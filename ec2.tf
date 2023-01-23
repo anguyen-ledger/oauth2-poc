@@ -6,7 +6,7 @@ module "oauth_poc_sg" {
   source              = "terraform-aws-modules/security-group/aws"
   version             = "3.18.0"
   name                = "hsm-controller-sg"
-  vpc_id              = "vpc-0e45330661ead195a"
+  vpc_id              = "vpc-04e8c037e44a386fc"
   ingress_cidr_blocks = concat(module.ledger_ips.trusted_locations, module.ledger_ips.infra_vpn,["212.106.106.198/32"])
   ingress_rules       = ["ssh-tcp","http-8080-tcp","https-443-tcp"]
   egress_cidr_blocks  = ["0.0.0.0/0"]
@@ -33,7 +33,7 @@ module "oauth_poc_ec2" {
   ]
   instance_type          = "t3.small"
   vpc_security_group_ids = [module.oauth_poc_sg.this_security_group_id]
-  subnet_id              = "subnet-0ec66e0ec14ceae26"
+  subnet_id              = "subnet-0e98bc39b4851d072"
 }
 
 resource "null_resource" "ansible_inventory" {
