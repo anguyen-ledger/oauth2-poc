@@ -79,3 +79,6 @@ keycloak-get-client-id: keycloak-get-token
           -H "Content-Type: application/json" \
 	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients | \
 	  jq -r '.[]| select(.clientId == "POC") | .id' | tee /tmp/clientId 
+
+
+keycloak-init: keycloak-create-realm keycloak-create-client keycloak-create-user keycloak-get-client-secret
