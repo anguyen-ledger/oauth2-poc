@@ -54,10 +54,28 @@ keycloak-create-client: keycloak-get-token
           -d "@keycloak-client.json" \
 	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients
 
-keycloak-get-client-secret: keycloak-get-token
+keycloak-create-user: keycloak-get-token
+	@echo Create new user in POC
+	@echo
+	@curl -s -k -XPOST \
+          -H "Authorization: Bearer `cat /tmp/token`" \
+          -H "Content-Type: application/json" \
+	  --data-raw '{"firstName":"test","lastName":"test", "email":"test@test.com", "enabled":"true", "username":"test", "emailVerified": "true", "credentials": [{"type":"password","value":"test","temporary":false}]}' \
+	  https://keycloak-rp.localdomain.com/admin/realms/POC/users
+
+keycloak-get-client-secret: keycloak-get-client-id
 	@echo GET client secret
 	@echo
 	@curl -s -k -XGET \
           -H "Authorization: Bearer `cat /tmp/token`" \
           -H "Content-Type: application/json" \
-	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients/POC/client-secret
+	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients/`cat /tmp/clientId`/client-secret
+
+keycloak-get-client-id: keycloak-get-token
+	@echo GET client secret
+	@echo
+	@curl -s -k -XGET \
+          -H "Authorization: Bearer `cat /tmp/token`" \
+          -H "Content-Type: application/json" \
+	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients | \
+	  jq -r '.[]| select(.clientId == "POC") | .id' | tee /tmp/clientId 
