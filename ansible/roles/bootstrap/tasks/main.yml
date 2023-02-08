@@ -31,7 +31,6 @@
   community.crypto.openssl_csr_pipe:
     privatekey_path: "{{ nginx_key_path }}"
     common_name: "{{ nginx_domain }}"
-    #subject_alt_name: ["DNS:oauth-{{ nginx_domain }},DNS:keycloak-{{ nginx_domain }}"]
     subject_alt_name: ["DNS:oauth-{{ nginx_domain }}","DNS:keycloak-{{ nginx_domain }}"]
     organization_name: "OAUTH POC"
   register: csr
@@ -49,15 +48,6 @@
     privatekey_path: "{{ nginx_key_path }}"
     provider: selfsigned
 
-    #- name: Create user basic auth credentials
-    #  community.general.htpasswd:
-    #    path: /etc/nginx/passwdfile
-    #    name: test
-    #    password: 'test'
-    #    owner: root
-    #    group: www-data
-    #    mode: 0640
-
 - name: Update nginx vhost
   ansible.builtin.template:
     src: etc/nginx/sites-enabled/vhost.j2
@@ -72,10 +62,3 @@
     state: restarted
     name: nginx
   when: nginx_conf.changed
-
-- name: Configure static hosts for POC 
-  ansible.builtin.lineinfile:
-    path: /etc/hosts
-    regexp: '^{{ item.ip }}'
-    line: "{{ item.ip }} {{ item.name }}"
-  with_items: "{{ hosts_override }}"

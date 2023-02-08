@@ -68,4 +68,5 @@
         --cookie-httponly="true" \
         --cookie-domain=".localdomain.com" \
         --whitelist-domain=".localdomain.com" \
-        --upstream=https://rp.localdomain.com
+        --upstream=https://rp.localdomain.com \
+        --keycloak-group="allowed_users"

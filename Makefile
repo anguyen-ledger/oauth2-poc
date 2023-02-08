@@ -42,7 +42,7 @@ keycloak-create-realm: keycloak-get-token
 	@curl -s -k -XPOST \
           -H "Authorization: Bearer `cat /tmp/token`" \
           -H "Content-Type: application/json" \
-          -d "@keycloak-poc-realm.json" \
+          -d "@keycloak_conf/keycloak-poc-realm.json" \
 	  https://keycloak-rp.localdomain.com/admin/realms
 
 keycloak-create-client: keycloak-get-token
@@ -51,7 +51,7 @@ keycloak-create-client: keycloak-get-token
 	@curl -s -k -XPOST \
           -H "Authorization: Bearer `cat /tmp/token`" \
           -H "Content-Type: application/json" \
-          -d "@keycloak-client.json" \
+          -d "@keycloak_conf/keycloak-client.json" \
 	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients
 
 keycloak-create-user: keycloak-get-token
@@ -61,6 +61,15 @@ keycloak-create-user: keycloak-get-token
           -H "Authorization: Bearer `cat /tmp/token`" \
           -H "Content-Type: application/json" \
 	  --data-raw '{"firstName":"test","lastName":"test", "email":"test@test.com", "enabled":"true", "username":"test", "emailVerified": "true", "credentials": [{"type":"password","value":"test","temporary":false}]}' \
+	  https://keycloak-rp.localdomain.com/admin/realms/POC/users
+
+keycloak-create-denied-user: keycloak-get-token
+	@echo Create new user in POC
+	@echo
+	@curl -s -k -XPOST \
+          -H "Authorization: Bearer `cat /tmp/token`" \
+          -H "Content-Type: application/json" \
+	  --data-raw '{"firstName":"denied","lastName":"denied", "email":"denied@denied.com", "enabled":"true", "username":"denied", "emailVerified": "true", "credentials": [{"type":"password","value":"denied","temporary":false}]}' \
 	  https://keycloak-rp.localdomain.com/admin/realms/POC/users
 
 keycloak-get-client-secret: keycloak-get-client-id
@@ -80,5 +89,7 @@ keycloak-get-client-id: keycloak-get-token
 	  https://keycloak-rp.localdomain.com/admin/realms/POC/clients | \
 	  jq -r '.[]| select(.clientId == "POC") | .id' | tee /tmp/clientId 
 
+keycloak-finished:
+	@echo "Done" > keycloak_status.txt
 
-keycloak-init: keycloak-create-realm keycloak-create-client keycloak-create-user keycloak-get-client-secret
+keycloak-init: keycloak-create-realm keycloak-create-client keycloak-create-user keycloak-get-client-secret keycloak-finished

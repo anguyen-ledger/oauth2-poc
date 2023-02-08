@@ -41,50 +41,27 @@
       pip:
         name: docker
 
-    - name: Docker POSTGRES
-      shell: |
-        docker run -p 5432:5432 --name keycloak-postgres -e POSTGRES_PASSWORD=keycloak -e POSTGRES_USER=keycloak -d postgres
-        docker run -p 8082:8080 --name keycloak \
-        -e DB_VENDOR=POSTGRES \
-        -e DB_ADDR=127.0.0.1 \
-        -e DB_DATABASE=keycloak \
-        -e DB_USER=keycloak \
-        -e DB_SCHEMA=public \
-        -e DB_PASSWORD=keycloak \
-        -e KEYCLOAK_USER=admin \
-        -e KEYCLOAK_ADMIN=admin \
-        -e KEYCLOAK_PASSWORD=admin \
-        -e KEYCLOAK_ADMIN_PASSWORD=admin \
-        -d quay.io/keycloak/keycloak start \
-        --proxy edge \
-        --hostname-strict=false \
-        --hostname-admin-url=https://keycloak-rp.localdomain.com \
-        --hostname-url=https://keycloak-rp.localdomain.com \
-        --hostname-strict-backchannel=true
+    - name: Start keycloak
+      docker_compose:
+        project_src: docker/keycloak
+        state: present
 
-        docker run -p 4180:4180 -add-host keycloak-rp.localdomain.com:172.17.0.1 --add-host rp.localdomain.com:172.17.0.1 --name oauth2-proxy -d quay.io/oauth2-proxy/oauth2-proxy \
-        --provider=keycloak-oidc \
-        --client-id=hsm-api \
-        --client-secret=29w2TKr0mtLMZaOFcuhEG0eH9Hej3oTy \
-        --redirect-url=https://rp.localdomain.com/oauth2/callback \
-        --oidc-issuer-url=https://keycloak-rp.localdomain.com/realms/POC \
-        --cookie-secret=3yVvp2oayAMokKV5-s6uiRPiRlsdCW8_Ig4j4CmlmS0= \
-        --cookie-secure=true \
-        --reverse-proxy=true \
-        --email-domain=* \
-        --ssl-insecure-skip-verify=true \
-        --ssl-upstream-insecure-skip-verify=tru
-        --http-address=0.0.0.0:4180 \
-        --insecure-oidc-allow-unverified-email=true \
-        --show-debug-on-error=true \
-        --whitelist-domain=.localdomain.com \
-        --pass-access-token=true \
-        --pass-authorization-header=true \
-        --pass-user-headers=true \
-        --set-authorization-header=true \
-        --set-xauthrequest=true \
-        --cookie-samesite="none" \
-        --cookie-httponly="true" \
-        --cookie-domain=".localdomain.com" \
-        --whitelist-domain=".localdomain.com" \
-        --upstream=https://rp.localdomain.com
+    - name: Get keycloak status
+      shell: |
+        #!/bin/bash
+        cd ../
+        cat keycloak_status
+      register: keycloak_status 
+
+    - name: Docker OAUTH
+      shell: |
+        #!/bin/bash
+        cd ../
+        make keycloak-init 
+      delegate_to: localhost
+      when: 
+
+    - name: Start oauth2-proxy
+      docker_compose:
+        project_src: docker/oauth2-proxy
+        state: present

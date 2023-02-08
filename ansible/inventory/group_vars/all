@@ -1,10 +1,2 @@
 ---
-hosts_override:
-  - ip: 10.100.33.20
-    name: hsm-pa2-h17
-  - ip: 10.100.33.21
-    name: hsm-pa2-h18
-  - ip: 10.100.33.22
-    name: hsm-pa2-h19
-
 api_port: 12347
